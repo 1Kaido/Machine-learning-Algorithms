@@ -41,4 +41,3 @@ class MyBaggingClassifier:
             predictions.append(final)
 
         return predictions
-        
