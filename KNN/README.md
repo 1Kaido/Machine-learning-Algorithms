@@ -1,0 +1,1 @@
+so KNN is an Classification algorithms it's the most simple algorithms the algorithm says I'm same as my neighbour for example 
