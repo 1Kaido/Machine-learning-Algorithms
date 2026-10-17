@@ -1,0 +1,43 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+data = {
+    "Area": [500, 700, 800, 1000, 1200, 1400,
+             1600, 1800, 2000, 2200, 2400, 2600],
+    "Bedrooms": [1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5],
+    "Age": [20, 15, 10, 8, 5, 7, 4, 3, 2, 1, 2, 1],
+    "Furnished": [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1]
+}
+
+df = pd.DataFrame(data)
+
+X = df.drop("Furnished", axis=1).values
+y = df["Furnished"].values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42
+)
+
+print("X_train:", X_train.shape)
+print("X_test:", X_test.shape)
+print("y_train:", y_train.shape)
+print("y_test:", y_test.shape)
+
+#Model 0 (F0(x))
+p = np.mean(y)
+log_odds = np.log(p / (1 - p))
+log_odds
+
+#Probabilities
+po = 1/(1+np.exp(-p))
+#residuals
+residuals = y_train - po
+
+#Train a Tree
+from sklearn.tree import DecisionTreeRegressor
+dt = DecisionTreeRegressor(max_depth=1)
+dt.fit(X_train,residuals)
+
+predictions = dt.predict(X_train)
+predictions
