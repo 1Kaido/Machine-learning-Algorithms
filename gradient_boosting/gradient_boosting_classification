@@ -38,6 +38,25 @@ residuals = y_train - po
 from sklearn.tree import DecisionTreeRegressor
 dt = DecisionTreeRegressor(max_depth=1)
 dt.fit(X_train,residuals)
-
 predictions = dt.predict(X_train)
-predictions
+
+#Leaf node calculations and gamma
+leaf_nodes = dt.apply(X_train)
+initial_prediction = np.log(np.mean(y) / (1 - np.mean(y)))
+F = np.full(len(X_train), initial_prediction)
+probability = 1 / (1 + np.exp(-F))
+residuals = y_train - probability
+for node in np.unique(leaf_nodes):
+    mask = leaf_nodes == node
+    X_node = X_train[mask]
+    probability_node = probability[mask]
+    residuals_node = residuals[mask]
+
+    
+    numerator = np.sum(residuals_node)
+    denominator = np.sum(
+        probability_node * (1 - probability_node)
+    )
+    gamma = numerator / denominator if denominator != 0 else 0
+    F[mask] += gamma
+F
