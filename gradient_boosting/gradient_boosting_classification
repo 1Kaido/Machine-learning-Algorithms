@@ -74,22 +74,29 @@ print("Accuracy:", np.mean(prediction == np.asarray(y_train)))
 
 #Class
 class GradientBoostingClassification:
-    def __init__(self):
+    def __init__(self,learning_rate=0.1,n_estimators=50):
         self.initial_prediction = None
         self.trees = []
-        self.n_estimators = 10
+        self.leaf_gammas = []
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
 
     def fit(self,X_train,y_train):
         from sklearn.tree import DecisionTreeRegressor
         self.trees = []
-        self.initial_prediction = np.log(np.mean(y_train) / (1 - np.mean(y_train)))
-        F = np.full(len(X_train), initial_prediction)
+        self.leaf_gammas = []
+        p0 = np.clip(np.mean(y_train), 1e-15, 1 - 1e-15) #AI
+        self.initial_prediction = np.log(p0 / (1 - p0))
+        F = np.full(len(X_train), self.initial_prediction)
         probability = 1 / (1 + np.exp(-F))
         residuals = y_train - probability
 
-        for i in range (110):
+        for i in range(self.n_estimators):
+            probability = 1 / (1 + np.exp(-F))
+            residuals = y_train - probability
             tree = DecisionTreeRegressor(max_depth=1)
             tree.fit(X_train, residuals)
+            gammas = {}
             leaf_nodes = tree.apply(X_train)
             for node in np.unique(leaf_nodes):
                 mask = leaf_nodes == node
@@ -98,9 +105,19 @@ class GradientBoostingClassification:
                 residuals_node = residuals[mask]
                 numerator = np.sum(residuals_node)
                 denominator = np.sum(probability_node * (1 - probability_node))
-                gamma = numerator / denominator if denominator != 0 else 0
-                F[mask] += 0.1*gamma
-            probability = 1 / (1 + np.exp(-F))
-            residuals = y_train - probability
-        probability
-        prediction = (probability >= 0.5).astype(int)
+                gamma = numerator / denominator if denominator > 0 else 0
+                gammas[node] = gamma
+                F[mask] += self.learning_rate * gamma
+            self.trees.append(tree)
+            self.leaf_gammas.append(gammas)
+        return self
+    
+    def predict(self, X_test):
+        predictions = np.full(len(X_test), self.initial_prediction, dtype=float)
+        for tree, gammas in zip(self.trees, self.leaf_gammas):
+            leaf_nodes = tree.apply(X_test)
+            for node, gamma in gammas.items():
+                mask = leaf_nodes == node
+                predictions[mask] += self.learning_rate * gamma
+        probability = 1 / (1 + np.exp(-predictions))
+        return (probability >= 0.5).astype(int)
