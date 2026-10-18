@@ -40,23 +40,33 @@ dt = DecisionTreeRegressor(max_depth=1)
 dt.fit(X_train,residuals)
 predictions = dt.predict(X_train)
 
-#Leaf node calculations and gamma
-leaf_nodes = dt.apply(X_train)
-initial_prediction = np.log(np.mean(y) / (1 - np.mean(y)))
+#Complete Fit Function 
+
+initial_prediction = np.log(np.mean(y_train) / (1 - np.mean(y_train)))
 F = np.full(len(X_train), initial_prediction)
 probability = 1 / (1 + np.exp(-F))
 residuals = y_train - probability
-for node in np.unique(leaf_nodes):
-    mask = leaf_nodes == node
-    X_node = X_train[mask]
-    probability_node = probability[mask]
-    residuals_node = residuals[mask]
+for i in range (110):
+    from sklearn.tree import DecisionTreeRegressor
+    tree = DecisionTreeRegressor(max_depth=1)
+    tree.fit(X_train, residuals)
 
-    
-    numerator = np.sum(residuals_node)
-    denominator = np.sum(
-        probability_node * (1 - probability_node)
-    )
-    gamma = numerator / denominator if denominator != 0 else 0
-    F[mask] += gamma
-F
+    leaf_nodes = tree.apply(X_train)
+    for node in np.unique(leaf_nodes):
+        mask = leaf_nodes == node
+        X_node = X_train[mask]
+        probability_node = probability[mask]
+        residuals_node = residuals[mask]
+        numerator = np.sum(residuals_node)
+        denominator = np.sum(probability_node * (1 - probability_node))
+        gamma = numerator / denominator if denominator != 0 else 0
+        F[mask] += 0.1*gamma
+    probability = 1 / (1 + np.exp(-F))
+    residuals = y_train - probability
+probability
+prediction = (probability >= 0.5).astype(int)
+
+print("My predictions:", prediction)
+print("Real y_train:", np.asarray(y_train))
+print("Accuracy:", np.mean(prediction == np.asarray(y_train)))
+#1.0 Accuracy yoooooo
