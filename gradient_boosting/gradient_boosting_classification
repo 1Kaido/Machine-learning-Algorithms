@@ -1,78 +1,3 @@
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
-
-data = {
-    "Area": [500, 700, 800, 1000, 1200, 1400,
-             1600, 1800, 2000, 2200, 2400, 2600],
-    "Bedrooms": [1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5],
-    "Age": [20, 15, 10, 8, 5, 7, 4, 3, 2, 1, 2, 1],
-    "Furnished": [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1]
-}
-
-df = pd.DataFrame(data)
-
-X = df.drop("Furnished", axis=1).values
-y = df["Furnished"].values
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.25, random_state=42
-)
-
-print("X_train:", X_train.shape)
-print("X_test:", X_test.shape)
-print("y_train:", y_train.shape)
-print("y_test:", y_test.shape)
-
-#Model 0 (F0(x))
-p = np.mean(y)
-log_odds = np.log(p / (1 - p))
-log_odds
-
-#Probabilities
-po = 1/(1+np.exp(-p))
-#residuals
-residuals = y_train - po
-
-#Train a Tree
-from sklearn.tree import DecisionTreeRegressor
-dt = DecisionTreeRegressor(max_depth=1)
-dt.fit(X_train,residuals)
-predictions = dt.predict(X_train)
-
-#Complete Fit Function 
-
-initial_prediction = np.log(np.mean(y_train) / (1 - np.mean(y_train)))
-F = np.full(len(X_train), initial_prediction)
-probability = 1 / (1 + np.exp(-F))
-residuals = y_train - probability
-for i in range (110):
-    from sklearn.tree import DecisionTreeRegressor
-    tree = DecisionTreeRegressor(max_depth=1)
-    tree.fit(X_train, residuals)
-
-    leaf_nodes = tree.apply(X_train)
-    for node in np.unique(leaf_nodes):
-        mask = leaf_nodes == node
-        X_node = X_train[mask]
-        probability_node = probability[mask]
-        residuals_node = residuals[mask]
-        numerator = np.sum(residuals_node)
-        denominator = np.sum(probability_node * (1 - probability_node))
-        gamma = numerator / denominator if denominator != 0 else 0
-        F[mask] += 0.1*gamma
-    probability = 1 / (1 + np.exp(-F))
-    residuals = y_train - probability
-probability
-prediction = (probability >= 0.5).astype(int)
-
-print("My predictions:", prediction)
-print("Real y_train:", np.asarray(y_train))
-print("Accuracy:", np.mean(prediction == np.asarray(y_train)))
-#1.0 Accuracy yoooooo
-
-
-#Class
 class GradientBoostingClassification:
     def __init__(self,learning_rate=0.1,n_estimators=50):
         self.initial_prediction = None
@@ -111,7 +36,7 @@ class GradientBoostingClassification:
             self.trees.append(tree)
             self.leaf_gammas.append(gammas)
         return self
-    
+
     def predict(self, X_test):
         predictions = np.full(len(X_test), self.initial_prediction, dtype=float)
         for tree, gammas in zip(self.trees, self.leaf_gammas):
