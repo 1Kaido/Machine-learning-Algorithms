@@ -92,11 +92,11 @@ def all_threshold(X_train):
         thes = (x_unique[i] + x_unique[i+1])/2
         thresholds.append(thes)
     print(f"Thresholds: {thresholds}")
-    return thresholds 
+    return thresholds
 
 def similarity(gradients,hessians,left_nodes,right_nodes):
     #Similarity score
-    root_similarity = (np.sum(gradients)**2 /(np.sum(hessians) + lamda_)) 
+    root_similarity = (np.sum(gradients)**2 /(np.sum(hessians) + lamda_))
     print(f"gradients: {gradients}")
     print(f"left_nodes: {left_nodes}")
     print(f"right_nodes: {right_nodes}")
@@ -113,8 +113,8 @@ def similarity(gradients,hessians,left_nodes,right_nodes):
     return score
 
 def splitting(X_train,threshold):
-    left_nodes = X_train.flatten() > threshold
-    right_nodes = X_train.flatten() <= threshold
+    left_nodes = X_train.flatten() <= threshold
+    right_nodes = X_train.flatten() > threshold
     return left_nodes,right_nodes
 
 def gain(X_train, gradients,hessians):
@@ -122,7 +122,7 @@ def gain(X_train, gradients,hessians):
     thresholds = all_threshold(X_train)
     for threshold in thresholds:
         left_nodes,right_nodes = splitting(X_train,threshold)
-        score = similarity(gradients,left_nodes,right_nodes)
+        score = similarity(gradients, hessians,left_nodes,right_nodes)
         gain = 0.5 * score
         gains.append(gain)
     best_index = np.argmax(gains)
@@ -132,19 +132,21 @@ def gain(X_train, gradients,hessians):
 
 def build_tree(X_train,gradients,hessians,depth=0):
     if depth == 2 or len(X_train) < 2:
-        return {"leaf": -np.sum(gradients) / (len(gradients) + lamda_)}
+        return {"leaf": -np.sum(gradients) / (np.sum(hessians) + lamda_)}
     best_threshold = gain(X_train, gradients,hessians)
     left_nodes,right_nodes = splitting(X_train,best_threshold)
     left_gradient = gradients[left_nodes]
     right_gradient = gradients[right_nodes]
     X_left = X_train[left_nodes]
     X_right = X_train[right_nodes]
+    left_hessian = hessians[left_nodes]
+    right_hessian = hessians[right_nodes]
     return {
         "threshold": best_threshold,
-        "left": build_tree(X_left, left_gradient, depth + 1),
-        "right": build_tree(X_right, right_gradient, depth + 1)
+        "left": build_tree(X_left, left_gradient,left_hessian, depth + 1),
+        "right": build_tree(X_right, right_gradient,right_hessian,depth + 1)
     }
 
 import json
-tree = build_tree(X_train, gradients)
+tree = build_tree(X_train, gradients,hessians)
 print(json.dumps(tree, indent=4))
