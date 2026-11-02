@@ -4,7 +4,7 @@ class XgboostTreeRegression:
         self.gamma = gamma
         self.tree = None
         self.max_depth = max_depth
-
+        self.base_pred = None
     def all_threshold(self,X_train):
         thresholds = []
         x_unique = np.unique(X_train)
@@ -38,7 +38,7 @@ class XgboostTreeRegression:
         return left_nodes,right_nodes
 
     def gain(self,X_train, gradients,hessians):
-       
+
         best_gains = []
         for feature in range(X_train.shape[1]):
             gains = []
@@ -59,7 +59,7 @@ class XgboostTreeRegression:
         return best_split
 
     def build_tree(self,X_train,gradients,hessians,depth=0):
-        if depth >= 2 or len(X_train) < 2:
+        if depth >= self.max_depth or len(X_train) < 2:
             return {"leaf": -np.sum(gradients) / (np.sum(hessians) + self.lamda)}
        # print(f"len of gradient in tree: {len(gradients)}")
         #best_threshold = self.gain(X_train, gradients,hessians)
@@ -81,18 +81,41 @@ class XgboostTreeRegression:
         }
 
     def fit(self,X_train,y_train):
+        self.base_pred = np.mean(y_train)
         pred = np.full(len(y_train),np.mean(y_train))
         gradients = pred - y_train
         #print(f"len of pred: {len(pred),len(gradients)}")
         hessians = np.ones(len(y_train))
-        tree = self.build_tree(X_train,gradients,hessians,self.max_depth)
+        
         import json
         #print(json.dumps(tree, indent=4))
         #print("Y:", y_train.min(), y_train.max())
         #print("Gradient:", gradients.min(), gradients.max())
         #print("Hessian:", hessians.min(), hessians.max())
         self.tree = self.build_tree(X_train, gradients, hessians)
-      
+
+
+    def predict_tree(self,X_test,node):
+        #print(self.tree)
+        #print(X_test[0])
+        if "leaf" in node:
+            return np.full(len(X_test), node["leaf"])
+
+        feature = node["feature"]
+        threshold = node["threshold"]
+        left_mask = X_test[:, feature] <= threshold
+        right_mask = X_test[:, feature] > threshold
+        predictions = np.zeros(len(X_test))
+        predictions[left_mask] = self.predict_tree(
+        X_test[left_mask], node["left"])
+        predictions[right_mask] = self.predict_tree(
+        X_test[right_mask], node["right"])
+        return predictions 
 
     def predict(self,X_test):
-        #Code here
+        learning_rate = 0.1
+        initial_pred = np.full(len(X_test),np.mean(self.base_pred))
+        tree_pred = self.predict_tree(X_test, self.tree)
+        final_pred = initial_pred + learning_rate * tree_pred
+        print(final_pred)
+        return final_pred
