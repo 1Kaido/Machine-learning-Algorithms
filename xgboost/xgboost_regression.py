@@ -1,9 +1,9 @@
 class XgboostTreeRegression:
     def __init__(self,lamda=1,gamma=0.5,max_depth=0):
         self.lamda = lamda
-        self.gamma = gamma 
+        self.gamma = gamma
         self.tree = None
-        self.max_depth = max_depth 
+        self.max_depth = max_depth
 
     def all_threshold(self,X_train):
         thresholds = []
@@ -32,32 +32,32 @@ class XgboostTreeRegression:
         print(f"score: {score}")
         return score
 
-    def splitting(self,X_train,threshold):
-        left_nodes = X_train[0] <= threshold
-        right_nodes = X_train[0] > threshold
+    def splitting(self,X_train, feature,threshold):
+        left_nodes = X_train[:,feature] <= threshold
+        right_nodes = X_train[:,feature] > threshold
         return left_nodes,right_nodes
 
     def gain(self,X_train, gradients,hessians):
         gains = []
-        for feature in 
-            thresholds = self.all_threshold(X_train)
+        for feature in range(X_train.shape[1]):
+            thresholds = self.all_threshold(X_train[feature])
             for threshold in thresholds:
-          
-                left_nodes,right_nodes = self.splitting(X_train,threshold)
+                left_nodes,right_nodes = self.splitting(X_train,feature,threshold)
                 score = self.similarity(gradients, hessians,left_nodes,right_nodes)
                 gain = 0.5 * score
-                gains.append(gain)
-            best_index = np.argmax(gains)
-            best_threshold = thresholds[best_index]
-            print(f"Best gain: {best_threshold}")
-            return best_threshold
+                print(f"Gain for {X_train[feature]}: {gain} threshold: {threshold}")
+                gains.append(gain)              
+        best_index = np.argmax(gains)
+        best_threshold = thresholds[best_index]
+       #     print(f"Best gain: {best_threshold}")
+        return best_threshold
 
     def build_tree(self,X_train,gradients,hessians,depth=0):
         if depth == 2 or len(X_train) < 2:
             return {"leaf": -np.sum(gradients) / (np.sum(hessians) + self.lamda)}
         print(f"len of gradient in tree: {len(gradients)}")
         best_threshold = self.gain(X_train, gradients,hessians)
-        if best_threshold <= gamma:
+        if best_threshold <= self.gamma:
             return {"leaf": -np.sum(gradients) / (np.sum(hessians) + self.lamda)}
         left_nodes,right_nodes = self.splitting(X_train,best_threshold)
         left_gradient = gradients[left_nodes]
@@ -76,9 +76,9 @@ class XgboostTreeRegression:
         pred = np.full(len(y_train),np.mean(y_train))
         gradients = pred - y_train
         print(f"len of pred: {len(pred),len(gradients)}")
-       
+
         hessians = np.ones(len(y_train))
         tree = self.build_tree(X_train,gradients,hessians,self.max_depth)
-        
+
         import json
         print(json.dumps(tree, indent=4))
