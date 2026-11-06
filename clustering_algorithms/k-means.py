@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs
@@ -12,7 +11,7 @@ plt.ylabel("Feature 2")
 plt.title("K-Means Dataset (3 Clusters)")
 plt.show()
 
-print(X.shape)  
+print(X.shape)
 
 #Step 1 random n_clustors
 n_clusters = 3
