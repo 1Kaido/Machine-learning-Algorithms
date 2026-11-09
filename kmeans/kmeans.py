@@ -1,12 +1,12 @@
 class Kmeans:
-    def __init__(self,n_clusters,iterations=100):
+    def __init__(self,n_clusters,iterations=10):
         self.n_clusters = n_clusters
         self.iteration = iterations
     def fit(self,X_train):
         indices = np.random.choice(len(X_train),self.n_clusters)
         centroids = X_train[indices]
 
-        for iteration in range(10):
+        for iteration in range(self.iterations):
             old_centroids = centroids.copy()
             new_centroids = []
             cluster_group = []
@@ -22,7 +22,11 @@ class Kmeans:
             clusters = np.unique(cluster_group)
             for cluster in clusters:
                 points = X_train[cluster_group == cluster] #AI for masking
-                centroid = np.mean(points,axis=0)
+                if len(points) == 0:
+                    centroid = old_centroids[cluster]
+                else:
+                    centroid = np.mean(points, axis=0)
+                #centroid = np.mean(points,axis=0)
                 new_centroids.append(centroid)
 
 
@@ -31,7 +35,7 @@ class Kmeans:
                 break
             centroids = new_centroids.copy()
             self.centroids = centroids
-            self.labels = labels
+            self.labels = cluster_group
 
     def predict(self,X_test): #AI help lil confuse how
         predictions = []
