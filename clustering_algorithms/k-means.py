@@ -1,37 +1,49 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.datasets import make_blobs
+class Kmeans:
+    def __init__(self,n_clusters,iterations=10):
+        self.n_clusters = n_clusters
+        self.iteration = iterations
+    def fit(self,X_train):
+        indices = np.random.choice(len(X_train),self.n_clusters)
+        centroids = X_train[indices]
 
-X, y = make_blobs(n_samples=500,n_features=2,centers=3,cluster_std=1.5,random_state=42)
+        for iteration in range(self.iterations):
+            old_centroids = centroids.copy()
+            new_centroids = []
+            cluster_group = []
+            for row in X_train:
+                distances = []
+                for centroid in centroids:
+                    distance = np.linalg.norm(row - centroid)
+                    distances.append(distance)
+                    #print(centroid,row,distance)
+                labels = np.argmin(distances)
+                cluster_group.append(labels)
+            cluster_group = np.array(cluster_group)
+            clusters = np.unique(cluster_group)
+            for cluster in clusters:
+                points = X_train[cluster_group == cluster] #AI for masking
+                if len(points) == 0:
+                    centroid = old_centroids[cluster]
+                else:
+                    centroid = np.mean(points, axis=0)
+                #centroid = np.mean(points,axis=0)
+                new_centroids.append(centroid)
 
-plt.figure(figsize=(8, 6))
-plt.scatter(X[:, 0], X[:, 1], c=y)
-plt.xlabel("Feature 1")
-plt.ylabel("Feature 2")
-plt.title("K-Means Dataset (3 Clusters)")
-plt.show()
 
-print(X.shape)
+            if np.allclose(old_centroids, new_centroids):
+                print(iteration,"Converged!")
+                break
+            centroids = new_centroids.copy()
+            self.centroids = centroids
+            self.labels = cluster_group
 
-#Step 1 random n_clustors
-n_clusters = 3
-indices = np.random.choice(len(X),n_clusters)
-centroids = X[indices]
-#print(centroids)
-#Distances
-cluster_group = []
-for row in X:
-    distances = []
-    for centroid in centroids:
-        distance = np.linalg.norm(row - centroid)
-        distances.append(distance)
-        #print(centroid,row,distance)
-    min_distance = np.argmin(distances)
-    cluster_group.append(min_distance)
-    #print(distances,min_distance)
-print(np.array(cluster_group).shape)
-clusters = np.unique(cluster_group)
-
-#now we got a cluster_group which tell us in
-#in which centroid each row belongs
-print(cluster_group)
+    def predict(self,X_test): #AI help lil confuse how
+        predictions = []
+        for row in X_test:
+            distances = []
+            for centroid in self.centroids:
+                distance = np.linalg.norm(row - centroid)
+                distances.append(distance)
+            labels = np.argmin(distances)
+            predictions.append(labels)
+        return predictions
